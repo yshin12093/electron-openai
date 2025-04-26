@@ -2,12 +2,18 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const OpenAI = require('openai');
 const axios = require('axios');
+require('dotenv').config();
 
 // Setup OpenAI client pointing to DeepSeek
 const openai = new OpenAI({
   baseURL: 'https://api.deepseek.com/v1',
-  apiKey: 'sk-9aa0ba5eae634ad6a8e1325bd65bc263'
+  apiKey: process.env.DEEPSEEK_API_KEY || ''
 });
+
+// Check if API key is available
+if (!process.env.DEEPSEEK_API_KEY) {
+  console.warn('Warning: DEEPSEEK_API_KEY not found in environment variables. Please create a .env file based on .env.example');
+}
 
 function createWindow() {
   const win = new BrowserWindow({
