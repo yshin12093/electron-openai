@@ -1,13 +1,208 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Simple OpenAI Electron App</title>
+  <title>Vibe Code</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #1e1e1e;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background-color: #2d2d2d;
+      padding: 10px 20px;
+      border-bottom: 1px solid #3e3e3e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #61dafb;
+    }
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      background-color: #252525;
+      border-bottom: 1px solid #3e3e3e;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-right: 1px solid #3e3e3e;
+    }
+    .tab.active {
+      background-color: #333;
+      border-bottom: 2px solid #61dafb;
+    }
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+    }
+    .tab-content.active {
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-section {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .chat-output {
+      background-color: #0e0e0e;
+      border-radius: 5px;
+      padding: 15px;
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      color: #cccccc;
+    }
+    .chat-input {
+      display: flex;
+      gap: 10px;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #3e3e3e;
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+      font-family: 'Courier New', monospace;
+    }
+    .chat-input button {
+      padding: 10px 15px;
+      border-radius: 5px;
+      border: none;
+      background-color: #61dafb;
+      color: #0e0e0e;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .chat-input button:hover {
+      background-color: #4fa8d1;
+    }
+    .file-section {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .file-info {
+      background-color: #2d2d2d;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+    .file-info h3 {
+      margin-top: 0;
+      color: #61dafb;
+    }
+    .file-info p {
+      margin: 5px 0;
+    }
+    .file-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .file-buttons button {
+      padding: 10px 15px;
+      border-radius: 5px;
+      border: none;
+      background-color: #61dafb;
+      color: #0e0e0e;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .file-buttons button:hover {
+      background-color: #4fa8d1;
+    }
+    .file-analysis {
+      background-color: #0e0e0e;
+      border-radius: 5px;
+      padding: 15px;
+      flex: 1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #cccccc;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #61dafb;
+    }
+    .success {
+      color: #4caf50;
+    }
+    .error {
+      color: #f44336;
+    }
+    .code-block {
+      background-color: #1e1e1e;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+      margin: 10px 0;
+      border-left: 3px solid #61dafb;
+    }
+  </style>
 </head>
 <body>
-  <h1>Ask OpenAI</h1>
-  <input id="prompt" type="text" placeholder="Ask something..." />
-  <button onclick="ask()">Send</button>
-  <p id="response"></p>
+  <div class="header">
+    <h1>Vibe Code</h1>
+  </div>
+  
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('chat')">Chat</div>
+    <div class="tab" onclick="switchTab('file')">File Analysis</div>
+  </div>
+  
+  <div class="main-content">
+    <div id="chat-tab" class="tab-content active">
+      <div class="chat-section">
+        <div id="chat-output" class="chat-output">
+          <div class="success">Welcome to Vibe Code. Ask a question to get started.</div>
+        </div>
+        <div class="chat-input">
+          <input id="prompt" type="text" placeholder="Ask something..." />
+          <button onclick="ask()">Send</button>
+        </div>
+      </div>
+    </div>
+    
+    <div id="file-tab" class="tab-content">
+      <div class="file-section">
+        <div id="file-info" class="file-info">
+          <h3>File Analysis</h3>
+          <p>Select a file to analyze it with DeepSeek AI.</p>
+          <p>The AI will provide insights about the file's content, structure, and potential improvements.</p>
+        </div>
+        <div class="file-buttons">
+          <button onclick="selectFile()">Select File</button>
+          <button id="analyze-button" onclick="analyzeFile()" disabled>Analyze File</button>
+        </div>
+        <div id="file-analysis" class="file-analysis">
+          <div>Select a file to begin analysis.</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="renderer.js"></script>
 </body>
