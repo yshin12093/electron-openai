@@ -3,6 +3,7 @@ const path = require('path');
 const OpenAI = require('openai');
 const axios = require('axios');
 const fs = require('fs');
+const pdfParse = require('pdf-parse');
 require('dotenv').config();
 
 // Setup OpenAI client pointing to DeepSeek
@@ -55,13 +56,14 @@ ipcMain.handle('ask-openai', async (_event, prompt) => {
 });
 
 // Handle file selection dialog
-ipcMain.handle('select-file', async (event) => {
+ipcMain.handle('select-file', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [
       { name: 'All Files', extensions: ['*'] },
       { name: 'Text Files', extensions: ['txt', 'md'] },
-      { name: 'Code Files', extensions: ['js', 'py', 'html', 'css', 'json', 'ts', 'jsx', 'tsx'] }
+      { name: 'Code Files', extensions: ['js', 'py', 'html', 'css', 'json', 'ts', 'jsx', 'tsx'] },
+      { name: 'PDF Files', extensions: ['pdf'] }
     ]
   });
   
@@ -77,16 +79,38 @@ ipcMain.handle('select-file', async (event) => {
   };
 });
 
+// Function to extract text from PDF
+async function extractPdfText(filePath) {
+  try {
+    const dataBuffer = fs.readFileSync(filePath);
+    const pdfData = await pdfParse(dataBuffer);
+    return pdfData.text;
+  } catch (error) {
+    console.error('Error extracting PDF text:', error);
+    throw new Error(`Failed to extract text from PDF: ${error.message}`);
+  }
+}
+
 // Handle file analysis
 ipcMain.handle('analyze-file', async (_event, filePath) => {
   try {
-    // Read the file content
-    const fileContent = fs.readFileSync(filePath, 'utf8');
     const fileName = path.basename(filePath);
-    const fileExtension = path.extname(filePath).substring(1); // Remove the dot
+    const fileExtension = path.extname(filePath).substring(1).toLowerCase(); // Remove the dot and convert to lowercase
+    
+    // Handle different file types
+    let fileContent;
+    
+    if (fileExtension === 'pdf') {
+      // Extract text from PDF
+      fileContent = await extractPdfText(filePath);
+      console.log(`Extracted ${fileContent.length} characters from PDF`);
+    } else {
+      // Read text-based files directly
+      fileContent = fs.readFileSync(filePath, 'utf8');
+    }
     
     // Prepare the prompt for file analysis
-    const prompt = `Analyze the following ${fileExtension} file named '${fileName}':\n\n${fileContent}\n\nProvide a detailed analysis including:\n1. A summary of what this file does\n2. Key components or functions\n3. Potential issues or improvements\n4. Best practices that could be applied`;
+    const prompt = `Summarize the following ${fileExtension} file named '${fileName}':\n\n${fileContent}\n\nProvide a detailed analysis including:\n1. A summary of what this file does\n2. Key components or functions\n3. Potential issues or improvements\n4. Best practices that could be applied`;
     
     // Truncate if the prompt is too long
     const maxLength = 12000; // DeepSeek has a token limit
@@ -97,7 +121,7 @@ ipcMain.handle('analyze-file', async (_event, filePath) => {
     // Call the AI to analyze the file
     const completion = await openai.chat.completions.create({
       messages: [
-        { role: "system", content: "You are an expert code and document analyzer. Provide clear, concise, and actionable insights." },
+        { role: "system", content: "You are an expert summarizer. Provide a clear, concise summary of the document." },
         { role: "user", content: truncatedPrompt }
       ],
       model: "deepseek-chat",
